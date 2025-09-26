@@ -23,17 +23,30 @@ class FiniteAutomaton:
     def add_transition(self, start_state, symbol, end_state): # Esta 
         if start_state not in self.transitions:
             self.transitions[start_state] = {}
-
+            
         if symbol not in self.transitions[start_state]:
             self.transitions[start_state][symbol] = set()
-        
+            
         self.transitions[start_state][symbol].add(end_state)
 
-    def accepts(self, cadena): # Esta
-        for i in range (len(cadena)):
-            if self.transitions.get(cadena[i])
-            
-
+    #CHAT GPT --------------------------------------------------------
+    def accepts(self, cadena):
+        # incluir todas las λ-transiciones desde el inicial
+        current_states = self._lambda_closure({self.initial_state})
+        
+        for symbol in cadena:
+            next_states = set()
+            for state in current_states:
+                if state in self.transitions and symbol in self.transitions[state]:
+                    next_states |= self.transitions[state][symbol]
+            # expandir con λ después de cada paso
+            current_states = self._lambda_closure(next_states)
+            if not current_states:
+                return False
+        
+        return any(s in self.final_states for s in current_states)
+    # END CHAT GPT ------------------------------------------------------
+    
     def to_deterministic(self):
         pass
 
@@ -64,3 +77,18 @@ class FiniteAutomaton:
                     dot.edge(state_ini, state_fin, symbol if symbol is not None else "λ")
 
         dot.render(path+filename, view=view)
+        
+    # CHAT GPT --------------------------------------------------------
+    def _lambda_closure(self, states):
+        closure = set(states)
+        stack = list(states)
+        
+        while stack:
+            state = stack.pop()
+            if state in self.transitions and None in self.transitions[state]:
+                for next_state in self.transitions[state][None]:
+                    if next_state not in closure:
+                        closure.add(next_state)
+                        stack.append(next_state)
+        return closure
+    # END CHAT GPT ------------------------------------------------------
