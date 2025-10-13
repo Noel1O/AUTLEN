@@ -4,6 +4,7 @@
 """
 
 from automaton import FiniteAutomaton
+from utils import AutomataFormat
 
 def _re_to_rpn(re_string):
     """
@@ -59,10 +60,18 @@ class REParser():
             Automaton that accepts the empty language. Type: FiniteAutomaton
 
         """
-        #---------------------------------------------------------------------
-        # TO DO: Implement this method...
-        raise NotImplementedError("This method must be implemented.")        
-        #---------------------------------------------------------------------
+        # Lenguaje vacío: NO acepta nada, ni siquiera la cadena vacía
+        # Autómata sin estados finales - rechaza todo
+        description = """
+        Automaton:
+            Symbols: 
+
+            q0
+
+            ini q0
+        """
+
+        return AutomataFormat.read(description)
         
 
     def _create_automaton_lambda(self):
@@ -73,10 +82,17 @@ class REParser():
             Automaton that accepts the empty string. Type: FiniteAutomaton
 
         """
-        #---------------------------------------------------------------------
-        # TO DO: Implement this method...
-        raise NotImplementedError("This method must be implemented.")        
-        #---------------------------------------------------------------------
+        # Cadena vacía: acepta SOLO la cadena vacía (ε o λ)
+        # Estado inicial que también es final
+        description = """
+        Automaton:
+            Symbols: 
+
+            q0 final
+
+            ini q0
+        """
+        return AutomataFormat.read(description)
 
 
     def _create_automaton_symbol(self, symbol):
@@ -90,10 +106,18 @@ class REParser():
             Automaton that accepts a symbol. Type: FiniteAutomaton
 
         """
-        #---------------------------------------------------------------------
-        # TO DO: Implement this method...
-        raise NotImplementedError("This method must be implemented.")        
-        #---------------------------------------------------------------------
+        # Autómata que acepta SOLO el símbolo específico
+        # q0 (inicial) -símbolo-> q1 (final)
+        description = f"""
+        Automaton:
+            Symbols: {symbol}
+
+            q0
+            q1 final
+
+            ini q0 -{symbol}-> q1
+        """
+        return AutomataFormat.read(description)
 
 
     def _create_automaton_star(self, automaton):
