@@ -67,6 +67,7 @@ class AutomataFormat():
                 continue
 
             raise FormatParseError(f"Invalid line: {line}")
+        
 
         if initial_state is None:
             raise FormatParseError("No initial state defined")

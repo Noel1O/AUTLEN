@@ -29,23 +29,19 @@ class FiniteAutomaton:
             
         self.transitions[start_state][symbol].add(end_state)
 
-    #CHAT GPT --------------------------------------------------------
     def accepts(self, cadena):
-        # incluir todas las λ-transiciones desde el inicial
-        current_states = self._lambda_closure({self.initial_state})
+        current_states = self._lambda_check({self.initial_state})
         
         for symbol in cadena:
             next_states = set()
             for state in current_states:
                 if state in self.transitions and symbol in self.transitions[state]:
                     next_states |= self.transitions[state][symbol]
-            # expandir con λ después de cada paso
-            current_states = self._lambda_closure(next_states)
+            current_states = self._lambda_check(next_states)
             if not current_states:
                 return False
-        
+            
         return any(s in self.final_states for s in current_states)
-    # END CHAT GPT ------------------------------------------------------
     
     def to_deterministic(self):
         pass
@@ -78,17 +74,30 @@ class FiniteAutomaton:
 
         dot.render(path+filename, view=view)
         
-    # CHAT GPT --------------------------------------------------------
-    def _lambda_closure(self, states):
-        closure = set(states)
-        stack = list(states)
+    def _lambda_check(self, states):
+        current_states = set(states)
+        queue = deque(states) 
         
-        while stack:
-            state = stack.pop()
+        while queue:
+            state = queue.popleft()
             if state in self.transitions and None in self.transitions[state]:
                 for next_state in self.transitions[state][None]:
-                    if next_state not in closure:
-                        closure.add(next_state)
-                        stack.append(next_state)
-        return closure
-    # END CHAT GPT ------------------------------------------------------
+                    if next_state not in current_states:
+                        current_states.add(next_state)
+                        queue.append(next_state)
+        return current_states
+    
+    def get_states(self):
+        return self.states
+    
+    def get_symbols(self):
+        return self.symbols
+    
+    def get_transitions(self):
+        return self.transitions
+    
+    def get_initial_state(self):
+        return self.initial_state
+    
+    def get_final_states(self):
+        return self.final_states

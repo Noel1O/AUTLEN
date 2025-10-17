@@ -60,8 +60,6 @@ class REParser():
             Automaton that accepts the empty language. Type: FiniteAutomaton
 
         """
-        # Lenguaje vacío: NO acepta nada, ni siquiera la cadena vacía
-        # Autómata sin estados finales - rechaza todo
         description = """
         Automaton:
             Symbols: 
@@ -82,8 +80,6 @@ class REParser():
             Automaton that accepts the empty string. Type: FiniteAutomaton
 
         """
-        # Cadena vacía: acepta SOLO la cadena vacía (ε o λ)
-        # Estado inicial que también es final
         description = """
         Automaton:
             Symbols: 
@@ -106,8 +102,6 @@ class REParser():
             Automaton that accepts a symbol. Type: FiniteAutomaton
 
         """
-        # Autómata que acepta SOLO el símbolo específico
-        # q0 (inicial) -símbolo-> q1 (final)
         description = f"""
         Automaton:
             Symbols: {symbol}
@@ -131,11 +125,20 @@ class REParser():
             Automaton that accepts the Kleene star. Type: FiniteAutomaton
 
         """
-        #---------------------------------------------------------------------
-        # TO DO: Implement this method...
-        raise NotImplementedError("This method must be implemented.")  
-        #---------------------------------------------------------------------
+        kleene_automaton = FiniteAutomaton(
+            initial_state = "Empty_initial",
+            states = automaton.get_states() + ["Empty_initial", "Empty_final"],
+            symbols = automaton.get_symbols(),
+            transitions = automaton.get_transitions(),
+            final_states = {"Empty_final"}
+        )
 
+        kleene_automaton.add_transition("Empty_initial", "λ", automaton.get_initial_state())
+        for final_state in automaton.get_final_states():
+            kleene_automaton.add_transition(final_state, "λ", "Empty_final")
+        kleene_automaton.add_transition("Empty_initial", "λ", "Empty_final")
+        for final_state in automaton.get_final_states():
+            kleene_automaton.add_transition(final_state, "λ", automaton.get_initial_state())
 
     def _create_automaton_union(self, automaton1, automaton2):
         """
@@ -149,10 +152,22 @@ class REParser():
             Automaton that accepts the union. Type: FiniteAutomaton.
 
         """
-        #---------------------------------------------------------------------
-        # TO DO: Implement this method...
-        raise NotImplementedError("This method must be implemented.")  
-        #---------------------------------------------------------------------
+        union_automaton = FiniteAutomaton(
+            initial_state = "Empty_initial",
+            states = automaton1.get_states() + automaton2.get_states() + ["Empty_initial", "Empty_final"],
+            symbols = automaton1.get_symbols() + automaton2.get_symbols(),
+            transitions = automaton1.get_transitions() | automaton2.get_transitions(),
+            final_states = {"Empty_final"}
+        )
+
+        union_automaton.add_transition("Empty_initial", "λ", automaton1.get_initial_state())
+        union_automaton.add_transition("Empty_initial", "λ", automaton2.get_initial_state())
+        for final_state in automaton1.get_final_states():
+            union_automaton.add_transition(final_state, "λ", "Empty_final")
+        for final_state in automaton2.final_states:
+            union_automaton.add_transition(final_state, "λ", "Empty_final")
+
+        return union_automaton
 
 
     def _create_automaton_concat(self, automaton1, automaton2):
@@ -167,11 +182,20 @@ class REParser():
             Automaton that accepts the concatenation. Type: FiniteAutomaton.
 
         """
-        #---------------------------------------------------------------------
-        # TO DO: Implement this method...
-        raise NotImplementedError("This method must be implemented.")     
-        #---------------------------------------------------------------------
-
+        concat_automaton = FiniteAutomaton(
+            initial_state = "Empty_initial",
+            states = automaton1.get_states() + automaton2.get_states() + ["Empty_initial", "Empty_final"],
+            symbols = automaton1.get_symbols() + automaton2.get_symbols(),
+            transitions = automaton1.get_transitions() | automaton2.get_transitions(),
+            final_states = {"Empty_final"}
+        )
+        concat_automaton.add_transition("Empty_initial", "λ", automaton1.get_initial_state())
+        for final_state in automaton1.get_final_states():
+            concat_automaton.add_transition(final_state, "λ", automaton2.get_initial_state())
+        for final_state in automaton2.get_final_states():
+            concat_automaton.add_transition(final_state, "λ", "Empty_final")
+            
+        return concat_automaton
 
     def create_automaton(
         self,

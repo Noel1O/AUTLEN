@@ -58,7 +58,6 @@ class TestEvaluatorFixed(TestEvaluatorBase):
         return AutomataFormat.read(description)
 
     def test_fixed(self):
-        
         """Test for a fixed string."""
         self._check_accept("Hello", should_accept=True)
         self._check_accept("Helloo", should_accept=False)
@@ -129,8 +128,6 @@ class TestEvaluatorNumber(TestEvaluatorBase):
 
     def test_number(self) -> None:
         """Test for a fixed string."""
-        self.automaton.draw(view=True)
-        
         self._check_accept("0", should_accept=True)
         self._check_accept("0.0", should_accept=True)
         self._check_accept("0.1", should_accept=True)
