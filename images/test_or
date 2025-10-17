@@ -1,0 +1,24 @@
+// Automata
+digraph {
+	rankdir=LR
+	"" [shape=none]
+	q1 [shape=circle]
+	q2 [shape=circle]
+	q3 [shape=circle]
+	q4 [shape=circle]
+	Empty_final_0 [shape=circle]
+	Empty_initial_0 [shape=circle]
+	Empty_initial_5 [shape=circle]
+	Empty_final_5 [shape=doublecircle]
+	"" -> Empty_initial_5
+	q1 -> q2 [label=a]
+	q3 -> q4 [label=b]
+	Empty_initial_0 -> q3 [label="λ"]
+	Empty_initial_0 -> q1 [label="λ"]
+	q2 -> Empty_final_0 [label="λ"]
+	q4 -> Empty_final_0 [label="λ"]
+	Empty_initial_5 -> Empty_final_5 [label="λ"]
+	Empty_initial_5 -> Empty_initial_0 [label="λ"]
+	Empty_final_0 -> Empty_final_5 [label="λ"]
+	Empty_final_0 -> Empty_initial_0 [label="λ"]
+}

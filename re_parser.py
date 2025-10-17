@@ -125,20 +125,26 @@ class REParser():
             Automaton that accepts the Kleene star. Type: FiniteAutomaton
 
         """
+        empty_initial = f"Empty_initial_{self.state_counter}"
+        empty_final = f"Empty_final_{self.state_counter}"
+        self.state_counter += 1
+        
         kleene_automaton = FiniteAutomaton(
-            initial_state = "Empty_initial",
-            states = automaton.get_states() + ["Empty_initial", "Empty_final"],
+            initial_state = empty_initial,
+            states = automaton.get_states() + [empty_initial, empty_final],
             symbols = automaton.get_symbols(),
             transitions = automaton.get_transitions(),
-            final_states = {"Empty_final"}
+            final_states = {empty_final}
         )
 
-        kleene_automaton.add_transition("Empty_initial", "λ", automaton.get_initial_state())
+        kleene_automaton.add_transition(empty_initial, "λ", automaton.get_initial_state())
         for final_state in automaton.get_final_states():
-            kleene_automaton.add_transition(final_state, "λ", "Empty_final")
-        kleene_automaton.add_transition("Empty_initial", "λ", "Empty_final")
+            kleene_automaton.add_transition(final_state, "λ", empty_final)
+        kleene_automaton.add_transition(empty_initial, "λ", empty_final)
         for final_state in automaton.get_final_states():
             kleene_automaton.add_transition(final_state, "λ", automaton.get_initial_state())
+
+        return kleene_automaton
 
     def _create_automaton_union(self, automaton1, automaton2):
         """
@@ -152,20 +158,51 @@ class REParser():
             Automaton that accepts the union. Type: FiniteAutomaton.
 
         """
+        empty_initial = f"Empty_initial_{self.state_counter}"
+        empty_final = f"Empty_final_{self.state_counter}"
+        self.state_counter += 1
+        automaton1state_transfer = {}
+        for state in automaton1.get_states():
+            automaton1state_transfer[state] = "q" + str(self.state_counter)
+            self.state_counter += 1
+        automaton1states = list(automaton1state_transfer.values())
+        automaton1transitions = {}
+        for ss, dct in automaton1.get_transitions().items():
+            n_ss = automaton1state_transfer[ss]
+            for k,v in dct.items():
+                n_v = set()
+                for state in v:
+                    n_v.add(automaton1state_transfer[state])
+            automaton1transitions[n_ss] = {k: n_v}
+        
+        automaton2state_transfer = {}
+        for state in automaton2.get_states():
+            automaton2state_transfer[state] = "q" + str(self.state_counter)
+            self.state_counter += 1
+        automaton2states = list(automaton2state_transfer.values())
+        automaton2transitions = {}
+        for ss, dct in automaton2.get_transitions().items():
+            n_ss = automaton2state_transfer[ss]
+            for k,v in dct.items():
+                n_v = set()
+                for state in v:
+                    n_v.add(automaton2state_transfer[state])
+            automaton2transitions[n_ss] = {k: n_v}
+            
         union_automaton = FiniteAutomaton(
-            initial_state = "Empty_initial",
-            states = automaton1.get_states() + automaton2.get_states() + ["Empty_initial", "Empty_final"],
+            initial_state = empty_initial,
+            states = automaton1states + automaton2states + [empty_final, empty_initial],
             symbols = automaton1.get_symbols() + automaton2.get_symbols(),
-            transitions = automaton1.get_transitions() | automaton2.get_transitions(),
-            final_states = {"Empty_final"}
+            transitions = automaton1transitions | automaton2transitions,
+            final_states = {empty_final}
         )
 
-        union_automaton.add_transition("Empty_initial", "λ", automaton1.get_initial_state())
-        union_automaton.add_transition("Empty_initial", "λ", automaton2.get_initial_state())
+        union_automaton.add_transition(empty_initial, "λ", automaton1state_transfer[automaton1.get_initial_state()])
+        union_automaton.add_transition(empty_initial, "λ", automaton2state_transfer[automaton2.get_initial_state()])
         for final_state in automaton1.get_final_states():
-            union_automaton.add_transition(final_state, "λ", "Empty_final")
-        for final_state in automaton2.final_states:
-            union_automaton.add_transition(final_state, "λ", "Empty_final")
+            union_automaton.add_transition(automaton1state_transfer[final_state], "λ", empty_final)
+        for final_state in automaton2.get_final_states():
+            union_automaton.add_transition(automaton2state_transfer[final_state], "λ", empty_final)
 
         return union_automaton
 
@@ -182,19 +219,54 @@ class REParser():
             Automaton that accepts the concatenation. Type: FiniteAutomaton.
 
         """
-        concat_automaton = FiniteAutomaton(
-            initial_state = "Empty_initial",
-            states = automaton1.get_states() + automaton2.get_states() + ["Empty_initial", "Empty_final"],
-            symbols = automaton1.get_symbols() + automaton2.get_symbols(),
-            transitions = automaton1.get_transitions() | automaton2.get_transitions(),
-            final_states = {"Empty_final"}
-        )
-        concat_automaton.add_transition("Empty_initial", "λ", automaton1.get_initial_state())
-        for final_state in automaton1.get_final_states():
-            concat_automaton.add_transition(final_state, "λ", automaton2.get_initial_state())
-        for final_state in automaton2.get_final_states():
-            concat_automaton.add_transition(final_state, "λ", "Empty_final")
+        empty_initial = f"Empty_initial_{self.state_counter}"
+        empty_final = f"Empty_final_{self.state_counter}"
+        self.state_counter += 1
+        automaton1state_transfer = {}
+        for state in automaton1.get_states():
+            automaton1state_transfer[state] = "q" + str(self.state_counter)
+            self.state_counter += 1
+        automaton1states = list(automaton1state_transfer.values())
+        automaton1transitions = {}
+        print(automaton1state_transfer)
+        for ss, dct in automaton1.get_transitions().items():
+            print(ss)
+            n_ss = automaton1state_transfer[ss]
+            for k,v in dct.items():
+                n_v = set()
+                for state in v:
+                    n_v.add(automaton1state_transfer[state])
+            automaton1transitions[n_ss] = {k: n_v}
+        
+        automaton2state_transfer = {}
+        for state in automaton2.get_states():
+            automaton2state_transfer[state] = "q" + str(self.state_counter)
+            self.state_counter += 1
+        automaton2states = list(automaton2state_transfer.values())
+        automaton2transitions = {}
+        for ss, dct in automaton2.get_transitions().items():
+            n_ss = automaton2state_transfer[ss]
+            for k,v in dct.items():
+                n_v = set()
+                for state in v:
+                    n_v.add(automaton2state_transfer[state])
+            automaton2transitions[n_ss] = {k: n_v}
             
+        concat_automaton = FiniteAutomaton(
+            initial_state = empty_initial,
+            states = automaton1states + automaton2states + [empty_final, empty_initial],
+            symbols = automaton1.get_symbols() + automaton2.get_symbols(),
+            transitions = automaton1transitions | automaton2transitions,
+            final_states = {empty_final}
+        )
+        
+        concat_automaton.add_transition(empty_initial, "λ", automaton1state_transfer[automaton1.get_initial_state()])
+        for final_state in automaton1.get_final_states():
+            concat_automaton.add_transition(final_state, "λ", automaton2state_transfer[automaton2.get_initial_state()])
+        for final_state in automaton2.get_final_states():
+            concat_automaton.add_transition(final_state, "λ", empty_final)
+            
+
         return concat_automaton
 
     def create_automaton(
