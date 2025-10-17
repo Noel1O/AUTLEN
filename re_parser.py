@@ -129,20 +129,32 @@ class REParser():
         empty_final = f"Empty_final_{self.state_counter}"
         self.state_counter += 1
         
+        # Copiar transiciones para no compartir referencia con el autómata original
+        import copy
+        copied_transitions = copy.deepcopy(automaton.get_transitions())
+
         kleene_automaton = FiniteAutomaton(
             initial_state = empty_initial,
             states = automaton.get_states() + [empty_initial, empty_final],
             symbols = automaton.get_symbols(),
-            transitions = automaton.get_transitions(),
+            transitions = copied_transitions,
             final_states = {empty_final}
         )
 
-        kleene_automaton.add_transition(empty_initial, "λ", automaton.get_initial_state())
+        # Transiciones lambda (usar None en lugar de "λ")
+        # 1. Desde empty_initial al estado inicial del autómata
+        kleene_automaton.add_transition(empty_initial, None, automaton.get_initial_state())
+        
+        # 2. Desde empty_initial directamente a empty_final (para aceptar cadena vacía)
+        kleene_automaton.add_transition(empty_initial, None, empty_final)
+        
+        # 3. Desde estados finales del autómata a empty_final
         for final_state in automaton.get_final_states():
-            kleene_automaton.add_transition(final_state, "λ", empty_final)
-        kleene_automaton.add_transition(empty_initial, "λ", empty_final)
+            kleene_automaton.add_transition(final_state, None, empty_final)
+        
+        # 4. Desde estados finales del autómata de vuelta al inicio (para repetir)
         for final_state in automaton.get_final_states():
-            kleene_automaton.add_transition(final_state, "λ", automaton.get_initial_state())
+            kleene_automaton.add_transition(final_state, None, automaton.get_initial_state())
 
         return kleene_automaton
 
@@ -161,34 +173,44 @@ class REParser():
         empty_initial = f"Empty_initial_{self.state_counter}"
         empty_final = f"Empty_final_{self.state_counter}"
         self.state_counter += 1
+        
+        # Renombrar estados de automaton1
         automaton1state_transfer = {}
         for state in automaton1.get_states():
             automaton1state_transfer[state] = "q" + str(self.state_counter)
             self.state_counter += 1
         automaton1states = list(automaton1state_transfer.values())
+        
+        # Renombrar transiciones de automaton1
         automaton1transitions = {}
         for ss, dct in automaton1.get_transitions().items():
             n_ss = automaton1state_transfer[ss]
-            for k,v in dct.items():
+            automaton1transitions[n_ss] = {}  # ← Inicializar diccionario para este estado
+            for k, v in dct.items():
                 n_v = set()
                 for state in v:
                     n_v.add(automaton1state_transfer[state])
-            automaton1transitions[n_ss] = {k: n_v}
+                automaton1transitions[n_ss][k] = n_v  # ← Guardar cada símbolo correctamente
         
+        # Renombrar estados de automaton2
         automaton2state_transfer = {}
         for state in automaton2.get_states():
             automaton2state_transfer[state] = "q" + str(self.state_counter)
             self.state_counter += 1
         automaton2states = list(automaton2state_transfer.values())
+        
+        # Renombrar transiciones de automaton2
         automaton2transitions = {}
         for ss, dct in automaton2.get_transitions().items():
             n_ss = automaton2state_transfer[ss]
-            for k,v in dct.items():
+            automaton2transitions[n_ss] = {}  # ← Inicializar diccionario para este estado
+            for k, v in dct.items():
                 n_v = set()
                 for state in v:
                     n_v.add(automaton2state_transfer[state])
-            automaton2transitions[n_ss] = {k: n_v}
+                automaton2transitions[n_ss][k] = n_v  # ← Guardar cada símbolo correctamente
             
+        # Crear autómata unión
         union_automaton = FiniteAutomaton(
             initial_state = empty_initial,
             states = automaton1states + automaton2states + [empty_final, empty_initial],
@@ -197,12 +219,19 @@ class REParser():
             final_states = {empty_final}
         )
 
-        union_automaton.add_transition(empty_initial, "λ", automaton1state_transfer[automaton1.get_initial_state()])
-        union_automaton.add_transition(empty_initial, "λ", automaton2state_transfer[automaton2.get_initial_state()])
+        # Conectar empty_initial con ambos autómatas (bifurcación)
+        union_automaton.add_transition(empty_initial, None, automaton1state_transfer[automaton1.get_initial_state()])
+        union_automaton.add_transition(empty_initial, None, automaton2state_transfer[automaton2.get_initial_state()])
+        
+        # Conectar estados finales de automaton1 con empty_final
         for final_state in automaton1.get_final_states():
-            union_automaton.add_transition(automaton1state_transfer[final_state], "λ", empty_final)
+            renamed_final = automaton1state_transfer[final_state]  # ← Usar nombre renombrado
+            union_automaton.add_transition(renamed_final, None, empty_final)
+        
+        # Conectar estados finales de automaton2 con empty_final
         for final_state in automaton2.get_final_states():
-            union_automaton.add_transition(automaton2state_transfer[final_state], "λ", empty_final)
+            renamed_final = automaton2state_transfer[final_state]  # ← Usar nombre renombrado
+            union_automaton.add_transition(renamed_final, None, empty_final)
 
         return union_automaton
 
@@ -222,36 +251,18 @@ class REParser():
         empty_initial = f"Empty_initial_{self.state_counter}"
         empty_final = f"Empty_final_{self.state_counter}"
         self.state_counter += 1
-        automaton1state_transfer = {}
-        for state in automaton1.get_states():
-            automaton1state_transfer[state] = "q" + str(self.state_counter)
-            self.state_counter += 1
+
+        # Obtener mapeos de estados antiguos->nuevos y listas de estados
+        automaton1state_transfer = self._change_state_names(automaton1)
+        automaton2state_transfer = self._change_state_names(automaton2)
         automaton1states = list(automaton1state_transfer.values())
-        automaton1transitions = {}
-        print(automaton1state_transfer)
-        for ss, dct in automaton1.get_transitions().items():
-            print(ss)
-            n_ss = automaton1state_transfer[ss]
-            for k,v in dct.items():
-                n_v = set()
-                for state in v:
-                    n_v.add(automaton1state_transfer[state])
-            automaton1transitions[n_ss] = {k: n_v}
-        
-        automaton2state_transfer = {}
-        for state in automaton2.get_states():
-            automaton2state_transfer[state] = "q" + str(self.state_counter)
-            self.state_counter += 1
         automaton2states = list(automaton2state_transfer.values())
-        automaton2transitions = {}
-        for ss, dct in automaton2.get_transitions().items():
-            n_ss = automaton2state_transfer[ss]
-            for k,v in dct.items():
-                n_v = set()
-                for state in v:
-                    n_v.add(automaton2state_transfer[state])
-            automaton2transitions[n_ss] = {k: n_v}
-            
+
+        # Renombrar transiciones usando los mapeos
+        automaton1transitions = self._change_transition_names(automaton1, automaton1state_transfer)
+        automaton2transitions = self._change_transition_names(automaton2, automaton2state_transfer)
+
+        # Crear autómata concatenado
         concat_automaton = FiniteAutomaton(
             initial_state = empty_initial,
             states = automaton1states + automaton2states + [empty_final, empty_initial],
@@ -260,11 +271,18 @@ class REParser():
             final_states = {empty_final}
         )
         
-        concat_automaton.add_transition(empty_initial, "λ", automaton1state_transfer[automaton1.get_initial_state()])
+        # Conectar empty_initial con el inicio de automaton1
+        concat_automaton.add_transition(empty_initial, None, automaton1state_transfer[automaton1.get_initial_state()])
+        
+        # Conectar estados finales de automaton1 con el inicio de automaton2
         for final_state in automaton1.get_final_states():
-            concat_automaton.add_transition(final_state, "λ", automaton2state_transfer[automaton2.get_initial_state()])
+            renamed_final = automaton1state_transfer[final_state]  # ← Usar nombre renombrado
+            concat_automaton.add_transition(renamed_final, None, automaton2state_transfer[automaton2.get_initial_state()])
+
+        # Conectar estados finales de automaton2 con empty_final
         for final_state in automaton2.get_final_states():
-            concat_automaton.add_transition(final_state, "λ", empty_final)
+            renamed_final = automaton2state_transfer[final_state]  # ← Usar nombre renombrado
+            concat_automaton.add_transition(renamed_final, None, empty_final)
             
 
         return concat_automaton
@@ -309,3 +327,46 @@ class REParser():
                 stack.append(self._create_automaton_symbol(x))
 
         return stack.pop()
+    
+    def _change_state_names(self, automaton):
+        """
+        Build a mapping from old state names to new unique names (no collisions).
+
+        Args:
+            automaton: Automaton whose states must be renamed. Type: FiniteAutomaton
+
+        Returns:
+            Dict[str, str]: mapping from old state -> new state name
+
+        """
+        state_transfer = {}
+        for state in automaton.get_states():
+            state_transfer[state] = "q" + str(self.state_counter)
+            self.state_counter += 1
+
+        return state_transfer
+
+
+    def _change_transition_names(self, automaton, state_transfer):
+        """
+        Change transition state names to avoid conflicts.
+
+        Args:
+            automaton: Automaton whose transitions must be renamed. Type: FiniteAutomaton
+            state_transfer: Dictionary mapping old state names to new ones. Type: Dict[str, str]
+
+        Returns:
+            Dict[str, Dict[Optional[str], Set[str]]]: transitions with renamed states
+
+        """
+        transitions = {}
+        for ss, dct in automaton.get_transitions().items():
+            n_ss = state_transfer[ss]
+            transitions[n_ss] = {}
+            for k, v in dct.items():
+                n_v = set()
+                for state in v:
+                    n_v.add(state_transfer[state])
+                transitions[n_ss][k] = n_v
+
+        return transitions
