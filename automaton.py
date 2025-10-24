@@ -44,7 +44,70 @@ class FiniteAutomaton:
         return any(s in self.final_states for s in current_states)
     
     def to_deterministic(self):
-        pass
+        aut_aux = FiniteAutomaton(
+            initial_state="",
+            states=set(),
+            symbols=self.symbols,
+            transitions={},
+            final_states=set()
+        )
+                
+        new_states_dict = {}
+        initial_states = set()
+        initial_states |= self._lambda_check({self.initial_state})
+        initial_states.add(self.initial_state)
+        initial_states = sorted(initial_states)
+        
+        for state in initial_states :
+            aut_aux.initial_state += state
+            
+        aut_aux.states.add(aut_aux.initial_state)
+        
+        new_states_dict[aut_aux.initial_state] = initial_states
+        
+        aut_aux.states.add("empty")
+
+
+        pending = [aut_aux.initial_state]
+        
+        while pending:
+            state_name = pending.pop(0)
+            state = new_states_dict[state_name]
+            for st in state: #A
+                for symbol, states_tr in self.get_transitions_from_state(st).items(): #a
+                    final = 0
+                    if symbol is not None:
+                        if states_tr in self.get_final_states():
+                            final = 1
+                        n_states = set()
+                        n_state_name = ""
+                        for s in states_tr:
+                            n_states.add(s)
+                            n_state_name += s
+                            n_states |= self._lambda_check({s})
+                            n_states = sorted(n_states)
+                            for ns in n_states:
+                                n_state_name += ns
+                        new_states_dict[n_state_name] = n_states
+                        if n_state_name not in aut_aux.states:
+                            pending.append(n_state_name)
+                        aut_aux.states.add(n_state_name)
+                        aut_aux.add_transition(state_name, symbol, n_state_name)
+                        if final == 1:
+                            aut_aux.final_states.add(n_state_name)
+                for symbol in self.get_symbols():
+                    if aut_aux.get_transitions_from_state(n_state_name).get(symbol) == None:
+                        aut_aux.add_transition(state_name, symbol, "empty")
+
+        
+        
+        self.states = aut_aux.states
+        self.initial_state = aut_aux.initial_state
+        self.final_states = aut_aux.final_states
+        self.transitions = aut_aux.transitions
+
+        return aut_aux
+        
 
     def to_minimized(self):
         pass
@@ -101,3 +164,8 @@ class FiniteAutomaton:
     
     def get_final_states(self):
         return self.final_states
+    def get_transitions_from_state(self, state):
+        
+        if state not in self.transitions:
+            return {}
+        return self.transitions[state]
