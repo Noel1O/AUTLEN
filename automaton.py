@@ -68,7 +68,8 @@ class FiniteAutomaton:
         aut_aux.states.add("empty")
 
 
-        pending = [aut_aux.initial_state]
+        pending = []
+        pending.append(aut_aux.initial_state)
         
         while pending:
             state_name = pending.pop(0)
@@ -77,13 +78,17 @@ class FiniteAutomaton:
                 for symbol, states_tr in self.get_transitions_from_state(st).items(): #a
                     final = 0
                     if symbol is not None:
-                        if states_tr in self.get_final_states():
-                            final = 1
+                        if len(states_tr) == 0:
+                            if states_tr == self.get_final_states():
+                                final = 1
+                        else:
+                            for fs in states_tr:
+                                if fs in self.get_final_states():
+                                    final = 1
                         n_states = set()
                         n_state_name = ""
                         for s in states_tr:
                             n_states.add(s)
-                            n_state_name += s
                             n_states |= self._lambda_check({s})
                             n_states = sorted(n_states)
                             for ns in n_states:
@@ -96,15 +101,11 @@ class FiniteAutomaton:
                         if final == 1:
                             aut_aux.final_states.add(n_state_name)
                 for symbol in self.get_symbols():
-                    if aut_aux.get_transitions_from_state(n_state_name).get(symbol) == None:
+                    if aut_aux.get_transitions_from_state(state_name).get(symbol) == None:
                         aut_aux.add_transition(state_name, symbol, "empty")
+                    aut_aux.add_transition("empty", symbol, "empty")
+                
 
-        
-        
-        self.states = aut_aux.states
-        self.initial_state = aut_aux.initial_state
-        self.final_states = aut_aux.final_states
-        self.transitions = aut_aux.transitions
 
         return aut_aux
         
