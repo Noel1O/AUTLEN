@@ -5,7 +5,6 @@
 
 from collections import deque
 from graphviz import Digraph
-from utils import is_deterministic
 
 """
     Podéis implementar cualquier función auxiliar que consideréis necesaria
@@ -179,8 +178,8 @@ class FiniteAutomaton:
             if i != 0:
                 it1 = it2.copy()
                 it2 = [-1 for _ in range(len(states))]
+                i=0
             while -1 in it2:
-                i = 0
                 idx_reference = -1
                 first_flag = False
                 for j, st in enumerate(states):
@@ -194,19 +193,23 @@ class FiniteAutomaton:
                                 continue
                             valid = True
                             for sym in aut_aux.get_symbols():
-                                final_st1 = aut_aux.get_final_states_from_symbol_transitions(states[j], sym)
-                                final_st2 = aut_aux.get_final_states_from_symbol_transitions(states[idx_reference], sym)
+                                final_st1 = set()
+                                final_st2 = set()
+                                final_st1 = set(aut_aux.get_final_states_from_symbol_transitions(states[j], sym))
+                                final_st2 = set(aut_aux.get_final_states_from_symbol_transitions(states[idx_reference], sym))
                                 if it1[state_idx[final_st1.pop()]] != it1[state_idx[final_st2.pop()]]:
                                     valid = False
                                     break
                             if valid:   
                                 it2[j] = i
-            i += 1
+                i += 1
             
             
         print("States: ", states) #DEBUG
         print("it1: ", it1) #DEBUG
         print("it2: ", it2) #DEBUG
+
+        return aut_aux
         
     def draw(self, path="./images/", filename="automata.png", view=False):
         dot = Digraph(comment="Automata", format="png")
