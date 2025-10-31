@@ -111,7 +111,102 @@ class FiniteAutomaton:
         
 
     def to_minimized(self):
-        pass
+        aut_aux = FiniteAutomaton(
+            initial_state=self.initial_state,
+            states=set(),
+            symbols=self.symbols,
+            transitions={},
+            final_states=set()
+        )
+
+        reachable = set()
+        queue = deque()
+
+        start_states = self._lambda_check({self.initial_state})
+        for s in start_states:
+            if s not in reachable:
+                reachable.add(s)
+                queue.append(s)
+                aut_aux.states.add(s)
+                if s in self.final_states:
+                    aut_aux.final_states.add(s)
+
+        while queue:
+            ss = queue.popleft()
+            for sym, targets in self.transitions.get(ss, {}).items():
+                for t in targets:
+                    aut_aux.add_transition(ss, sym, t)
+                    if t not in reachable:
+                        reachable.add(t)
+                        queue.append(t)
+                        aut_aux.states.add(t)
+                        if t in self.final_states:
+                            aut_aux.final_states.add(t)
+                    closure = self._lambda_check({t})
+                    for c in closure:
+                        if c not in reachable:
+                            reachable.add(c)
+                            queue.append(c)
+                            aut_aux.states.add(c)
+                            if c in self.final_states:
+                                aut_aux.final_states.add(c)
+
+        aut_aux.states = reachable
+
+        # Minimización
+        first_flag = False
+        idx_reference = -1
+        states = list(aut_aux.states)
+        i = 0
+        it1 = []
+        it2 = []
+        state_idx = {}
+        idx_state = {}
+        valid = False
+        
+        for idx, st in enumerate(states):
+            if st in aut_aux.get_final_states():
+                it1.append(1)
+            else:
+                it1.append(0)
+            it2.append(-1)
+            state_idx[st] = idx
+            idx_state[idx] = st
+            
+        print("Estados: ", states) #DEBUG
+        
+        while it1 != it2:
+            if i != 0:
+                it1 = it2.copy()
+                it2 = [-1 for _ in range(len(states))]
+            while -1 in it2:
+                i = 0
+                idx_reference = -1
+                first_flag = False
+                for j, st in enumerate(states):
+                    if it2[j] == -1:
+                        if first_flag == False:
+                            first_flag = True
+                            it2[j] = i
+                            idx_reference = j
+                        else:
+                            if it1[j] != it1[idx_reference]:
+                                continue
+                            valid = True
+                            for sym in aut_aux.get_symbols():
+                                final_st1 = aut_aux.get_final_states_from_symbol_transitions(states[j], sym)
+                                final_st2 = aut_aux.get_final_states_from_symbol_transitions(states[idx_reference], sym)
+                                if it1[state_idx[final_st1.pop()]] != it1[state_idx[final_st2.pop()]]:
+                                    valid = False
+                                    break
+                            if valid:   
+                                it2[j] = i
+            i += 1
+            
+            
+        print("States: ", states) #DEBUG
+        print("it1: ", it1) #DEBUG
+        print("it2: ", it2) #DEBUG
         
     def draw(self, path="./images/", filename="automata.png", view=False):
         dot = Digraph(comment="Automata", format="png")
@@ -165,8 +260,13 @@ class FiniteAutomaton:
     
     def get_final_states(self):
         return self.final_states
+    
     def get_transitions_from_state(self, state):
-        
         if state not in self.transitions:
             return {}
         return self.transitions[state]
+    
+    def get_final_states_from_symbol_transitions(self, state, symbol):
+        if state in self.transitions and symbol in self.transitions[state]:
+            return self.transitions[state][symbol]
+        return set()
