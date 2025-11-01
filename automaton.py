@@ -64,7 +64,7 @@ class FiniteAutomaton:
         
         new_states_dict[aut_aux.initial_state] = initial_states
         
-        aut_aux.states.add("empty")
+        aut_aux.states.add("Empty")
 
 
         pending = []
@@ -101,9 +101,9 @@ class FiniteAutomaton:
                             aut_aux.final_states.add(n_state_name)
                 for symbol in self.get_symbols():
                     if aut_aux.get_transitions_from_state(state_name).get(symbol) == None:
-                        aut_aux.add_transition(state_name, symbol, "empty")
-                    aut_aux.add_transition("empty", symbol, "empty")
-                
+                        aut_aux.add_transition(state_name, symbol, "Empty")
+                    aut_aux.add_transition("Empty", symbol, "Empty")
+
 
 
         return aut_aux
@@ -209,7 +209,62 @@ class FiniteAutomaton:
         print("it1: ", it1) #DEBUG
         print("it2: ", it2) #DEBUG
 
-        return aut_aux
+        new_states = {}
+
+        for key in it2:
+            new_states[key] = set()
+
+        for idx, st in enumerate(states):
+            new_states[it2[idx]].add(st)
+
+        print("New states: ", new_states) #DEBUG
+
+        aut_aux2 = FiniteAutomaton(
+            initial_state="",
+            states=set(),
+            symbols=self.symbols,
+            transitions={},
+            final_states=set()
+        )
+
+        # Crear mapeo de estados viejos a nuevos
+        state_mapping = {}
+        for idx, state_group in enumerate(new_states.values()):
+            new_name = ''.join(sorted(state_group))
+            state_mapping[frozenset(state_group)] = new_name
+            
+            # Agregar estado nuevo
+            aut_aux2.states.add(new_name)
+            
+            # Verificar si es estado inicial
+            if any(state == aut_aux.initial_state for state in state_group):
+                aut_aux2.initial_state = new_name
+            
+            # Verificar si es estado final
+            if any(state in aut_aux.get_final_states() for state in state_group):
+                aut_aux2.final_states.add(new_name)
+
+        print("State mapping: ", state_mapping) #DEBUG
+
+        # Crear transiciones
+        for sym in aut_aux.get_symbols():
+            for state_set, new_state_name in state_mapping.items():
+                # Encontrar todos los estados destino desde cualquier estado en el conjunto
+                all_targets = set()
+                for old_state in state_set:
+                    transitions = aut_aux.get_transitions_from_state(old_state)
+                    if transitions and sym in transitions:
+                        all_targets.update(transitions[sym])
+                
+                # Encontrar el nuevo estado que contiene estos destinos
+                if all_targets:
+                    for target_set, target_name in state_mapping.items():
+                        if all_targets.issubset(target_set):
+                            aut_aux2.add_transition(new_state_name, sym, target_name)
+                            break
+
+
+        return aut_aux2
         
     def draw(self, path="./images/", filename="automata.png", view=False):
         dot = Digraph(comment="Automata", format="png")
