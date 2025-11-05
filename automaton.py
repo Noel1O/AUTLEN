@@ -12,14 +12,14 @@ from graphviz import Digraph
 
 class FiniteAutomaton:
 
-    def __init__(self, initial_state, states, symbols, transitions, final_states): # Esta
+    def __init__(self, initial_state, states, symbols, transitions, final_states):
         self.initial_state = initial_state
         self.states = states
         self.symbols = symbols
         self.transitions = transitions
         self.final_states = final_states
 
-    def add_transition(self, start_state, symbol, end_state): # Esta 
+    def add_transition(self, start_state, symbol, end_state):
         if start_state not in self.transitions:
             self.transitions[start_state] = {}
             
@@ -51,6 +51,7 @@ class FiniteAutomaton:
             final_states=set()
         )
                 
+        # Inicializamos estados alcanzables por lambda desde el inicial
         new_states_dict = {}
         initial_states = set()
         initial_states |= self._lambda_check({self.initial_state})
@@ -64,8 +65,10 @@ class FiniteAutomaton:
         
         new_states_dict[aut_aux.initial_state] = initial_states
         
+        # Agregamos el estado vacío
         aut_aux.states.add("Empty")
 
+        # Procesamos los estados para generar el autómata determinista y cambiamos los nombres
 
         pending = []
         pending.append(aut_aux.initial_state)
@@ -73,7 +76,7 @@ class FiniteAutomaton:
         while pending:
             state_name = pending.pop(0)
             state = new_states_dict[state_name]
-            for st in state: #A
+            for st in state: 
                 for symbol, states_tr in self.get_transitions_from_state(st).items(): #a
                     final = 0
                     if symbol is not None:
@@ -103,9 +106,6 @@ class FiniteAutomaton:
                     if aut_aux.get_transitions_from_state(state_name).get(symbol) == None:
                         aut_aux.add_transition(state_name, symbol, "Empty")
                     aut_aux.add_transition("Empty", symbol, "Empty")
-
-
-
         return aut_aux
         
 
@@ -118,10 +118,11 @@ class FiniteAutomaton:
             final_states=set()
         )
 
+        # Quitar estados inalcanzables
         reachable = set()
         queue = deque()
 
-        start_states = self._lambda_check({self.initial_state})
+        start_states = set({self.initial_state})
         for s in start_states:
             if s not in reachable:
                 reachable.add(s)
@@ -141,7 +142,7 @@ class FiniteAutomaton:
                         aut_aux.states.add(t)
                         if t in self.final_states:
                             aut_aux.final_states.add(t)
-                    closure = self._lambda_check({t})
+                    closure = set({t})
                     for c in closure:
                         if c not in reachable:
                             reachable.add(c)
@@ -152,7 +153,7 @@ class FiniteAutomaton:
 
         aut_aux.states = reachable
 
-        # Minimización
+        # Proceso de minimización
         first_flag = False
         idx_reference = -1
         states = list(aut_aux.states)
@@ -171,8 +172,6 @@ class FiniteAutomaton:
             it2.append(-1)
             state_idx[st] = idx
             idx_state[idx] = st
-            
-        print("Estados: ", states) #DEBUG
         
         while it1 != it2:
             if i != 0:
@@ -203,21 +202,16 @@ class FiniteAutomaton:
                             if valid:   
                                 it2[j] = i
                 i += 1
-            
-            
-        print("States: ", states) #DEBUG
-        print("it1: ", it1) #DEBUG
-        print("it2: ", it2) #DEBUG
 
         new_states = {}
+
+        # Cambio de nombre a los estados minimizados
 
         for key in it2:
             new_states[key] = set()
 
         for idx, st in enumerate(states):
             new_states[it2[idx]].add(st)
-
-        print("New states: ", new_states) #DEBUG
 
         aut_aux2 = FiniteAutomaton(
             initial_state="",
@@ -227,38 +221,29 @@ class FiniteAutomaton:
             final_states=set()
         )
 
-        # Crear mapeo de estados viejos a nuevos
         state_mapping = {}
-        for idx, state_group in enumerate(new_states.values()):
+        for state_group in new_states.values():
             new_name = ''.join(sorted(state_group))
-            state_mapping[frozenset(state_group)] = new_name
-            
-            # Agregar estado nuevo
+            state_mapping[new_name] = set(state_group)
+
             aut_aux2.states.add(new_name)
-            
-            # Verificar si es estado inicial
+
             if any(state == aut_aux.initial_state for state in state_group):
                 aut_aux2.initial_state = new_name
-            
-            # Verificar si es estado final
+
             if any(state in aut_aux.get_final_states() for state in state_group):
                 aut_aux2.final_states.add(new_name)
 
-        print("State mapping: ", state_mapping) #DEBUG
-
-        # Crear transiciones
         for sym in aut_aux.get_symbols():
-            for state_set, new_state_name in state_mapping.items():
-                # Encontrar todos los estados destino desde cualquier estado en el conjunto
+            for new_state_name, state_set in state_mapping.items():
                 all_targets = set()
                 for old_state in state_set:
                     transitions = aut_aux.get_transitions_from_state(old_state)
                     if transitions and sym in transitions:
                         all_targets.update(transitions[sym])
-                
-                # Encontrar el nuevo estado que contiene estos destinos
+
                 if all_targets:
-                    for target_set, target_name in state_mapping.items():
+                    for target_name, target_set in state_mapping.items():
                         if all_targets.issubset(target_set):
                             aut_aux2.add_transition(new_state_name, sym, target_name)
                             break
