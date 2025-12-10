@@ -86,7 +86,7 @@ class Grammar:
             First set of str.
         """
         if not sentence:
-            return {''}
+            return {''} # Mejor que None para representar la cadena vacía
         
         first_set = set()
         first_char = sentence[0]
@@ -96,7 +96,7 @@ class Grammar:
         else:
             for production in self.productions[first_char]: # No empieza con terminal
                 if production == '':
-                    rest_first = self.compute_first(sentence[1:]) # Cadena vacía 
+                    rest_first = self.compute_first(sentence[1:]) # Cadena vacía, cálculo recursivo del primero del siguiente
                     first_set.update(rest_first)
                 else:
                     prod_first = self.compute_first(production) # Cálculo recursivo del primero del no terminal
@@ -179,27 +179,30 @@ class Grammar:
 
         Returns:
             LL(1) table for the grammar, or None if the grammar is not LL(1).
+
+        Raises:
+            RepeatedCellError: if trying to add a cell already filled.
         """
 
         ll1_table = LL1Table(self.non_terminals, self.terminals | {'$'})
             
-        for nt in self.non_terminals:
+        for nt in self.non_terminals: # Recorremos cada No Terminal
             for production in self.productions[nt]:
-                first_set = self.compute_first(production)
+                first_set = self.compute_first(production) # Calculamos Primero de la parte derecha
 
-                # 1) Si hay terminales en primero → a la tabla
-                for terminal in first_set - {''}:
+                # Si hay terminales en el primero se meten a la tabla
+                for terminal in first_set - {''}: # Para cada terminal en el Primero (salvo lambda)
                     try:
                         ll1_table.add_cell(nt, terminal, production)
                     except RepeatedCellError:
                         return None
 
-                # 2) Si la producción puede ser λ → meter en Follow
+                # Si hay lambdas en la producción se meten a los siguientes de la tabla
                 if '' in first_set:
                     follow_set = self.compute_follow(nt)
                     for terminal in follow_set:
                         try:
-                            ll1_table.add_cell(nt, terminal, '')
+                            ll1_table.add_cell(nt, terminal, '') # Se añade lambda
                         except RepeatedCellError:
                             return None
         
@@ -295,25 +298,25 @@ class LL1Table:
         """
 
         tree = ParseTree(start)
-        stack = deque([tree, ParseTree("$")])
-        input = deque(input_string)
+        stack = deque([tree, ParseTree("$")]) # Pila inicial símbolo de inicio y $
+        input = deque(input_string) # Cadena de entrada
 
         while stack:
             top = stack.popleft()
-            current_symbol = input[0] if input else None
+            current_symbol = input[0] if input else None # Leemos símbolo actual de entrada
 
             # Caso terminal o $
             if top.root in self.terminals or top.root == "$":
                 if top.root == current_symbol:
-                    input.popleft()
-                elif top.root == "$" and current_symbol is None:
+                    input.popleft() # Consumimos símbolo de entrada
+                elif top.root == "$" and current_symbol is None: # Fin de cadena
                     continue
                 else:
                     raise SyntaxError("Input string is not syntactically correct.")
                 continue
 
             # Caso no terminal
-            cell_body = self.cells[top.root].get(current_symbol)
+            cell_body = self.cells[top.root].get(current_symbol) # Consultamos la tabla para obtener la producción óptima
 
             if cell_body is None:
                 raise SyntaxError("Input string is not syntactically correct.")
@@ -332,8 +335,8 @@ class LL1Table:
 
             top.add_children(children)
 
-            # Push en orden inverso
-            for child in reversed(children):
+            # Push en orden inverso para garantizar el orden gramatical correcto
+            for child in reversed(children): 
                 stack.appendleft(child)
 
         # Al terminar, input debe estar vacío
